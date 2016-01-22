@@ -155,14 +155,14 @@ public:
 		}
 		
 		this->fixS.resize(6,e_gec_free);
-		#pragma omp parallel for
+		
 		for(int i=0;i<6;i++)
 			this->fixS[i]=fixS[i];
 
 		//cell
 		this->num_cell_axis.set(((max_SPAN-min_SPAN)/this->grid_intervel+cinder::Vec3f(0.5f,0.5f,0.5f)));
 		this->min_SPAN.set(min_SPAN);
-		this->max_SPAN.set(min_SPAN+num_cell_axis*grid_intervel);
+		this->max_SPAN.set(min_SPAN.x+num_cell_axis.x*grid_intervel, min_SPAN.y+num_cell_axis.y*grid_intervel, min_SPAN.z+num_cell_axis.z*grid_intervel);
 		this->num_cell_xy=num_cell_axis.x*num_cell_axis.y;
 		this->num_cell=num_cell_xy*num_cell_axis.z;
 
@@ -221,7 +221,7 @@ public:
 	{
 		cinder::Vec3f nature_coord=(p->position_t-node->position)*iJacobi-cinder::Vec3f(1,1,1);//-1-1
 		vector<cinder::Vec3f> s_nature_coord;
-		#pragma omp parallel for
+		
 		for(int i=0;i<8;i++)
 		{
 			s_nature_coord[i]=nature_coord.operator*(const_coord[i])+cinder::Vec3f(1,1,1);
@@ -229,13 +229,13 @@ public:
 
 		if(compute_flag==0||compute_flag==2)
 		{
-			#pragma omp parallel for
+			
 			for(int i=0;i<8;i++)
 				value_shape_func[i]=s_nature_coord[i].x*s_nature_coord[i].y*s_nature_coord[i].z*0.125f;
 		}
 		if(compute_flag==1||compute_flag==2)
 		{
-			#pragma omp parallel for
+			
 			for(int i=0;i<8;i++)
 			{
 				d_shape_func_axis[i].x=const_coord[i].x*s_nature_coord[i].y*s_nature_coord[i].z*iJacobi4;
@@ -247,9 +247,9 @@ public:
 
 	void calc_shape_function_GIMP(const particle* p, const int cell_index)
 	{
-		get_influenced_node_list(p, cell_index);
+		//get_influenced_node_list(p, cell_index);
 
-		#pragma omp parallel for
+		
 		for(int i=0;i<num_influence_node;i++)
 		{
 			cinder::Vec3f sh, dn;
@@ -307,8 +307,8 @@ public:
 
 	void init_grid_list()
 	{
-		grid_node_list.resize(num_gridnode, new grid_node());
-		#pragma omp parallel for
+		grid_node_list.resize(num_gridnode);
+		
 		for(int z=0;z<num_gridnode_axis.z;z++)
 		{
 			for(int y=0;y<num_gridnode_axis.y;y++)
@@ -316,6 +316,7 @@ public:
 				for(int x=0;x<num_gridnode_axis.x;x++)
 				{
 					int grid_index=num_gridnode_xy*z+num_gridnode_axis.x*y+x;
+					grid_node_list[grid_index]=new grid_node();
 					grid_node_list[grid_index]->position.set(min_SPAN+cinder::Vec3f(x,y,z)*grid_intervel);
 
 					if( (x==0&&fixS[0]==e_gec_fix) || (x==num_gridnode_axis.x-1&&fixS[1]==e_gec_fix) ||
@@ -339,7 +340,7 @@ public:
 	void init_cell_list()
 	{
 		cell_node_list.resize(boost::extents[num_cell][8]);
-		#pragma omp parallel for
+		
 		for(int z=0;z<num_cell_axis.z;z++)
 		{
 			for(int y=0;y<num_cell_axis.y;y++)
@@ -367,7 +368,7 @@ public:
 	//FOR GIMP ONLY
 	void get_influenced_node_list(const particle* p, const int& cell_index)
 	{
-		#pragma omp parallel for
+		
 		for(int i=0;i<8;i++)
 		{
 			influenced_node_list[i]=cell_node_list[cell_index][i];
@@ -377,7 +378,7 @@ public:
 		update_influenced_node_list();
 
 		//update distance
-		#pragma omp parallel for
+		
 		for(int i=8;i<num_influence_node;i++)
 		{
 			if(influenced_node_list[i]<num_gridnode&&influenced_node_list[i]>=0)

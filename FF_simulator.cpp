@@ -1,15 +1,15 @@
 #include "FF_simulator.h"
-void simulator::initialize()
+void simulator::initialize_explosion()
 {
-	int num_particle=4000;
+	int num_particle=125000;
 	float endtime=0.015f;
 	float outtime=endtime;
 
 	cinder::Vec3f grid_span_min(0,0,0);
-	cinder::Vec3f grid_span_max(101,0.05f,0.05f);
+	cinder::Vec3f grid_span_max(3,3,3);
 	float grid_space=0.05f;
 
-	float time_interval_factor=0.1;
+	float time_interval_factor=0.5;
 	float time_interval=1;
 	outtime=0.001;
 	float report_time=0.0001;
@@ -57,6 +57,7 @@ void simulator::initialize()
 	int num_detonation_point=1;
 	vector<cinder::Vec3f> detonation_points;
 	detonation_points.push_back(cinder::Vec3f(0,0,0));
+	//detonation_points.push_back(cinder::Vec3f(0,0.5,0.5));
 	cinder::Vec2f bulk_viscosity(1.5f,0.06f);
 	for(int i=0;i<num_material;i++)
 	{
@@ -84,10 +85,12 @@ void simulator::initialize()
 	p_particle_data=new particle_data();
 	int body_counter=0;
 	int particle_counter=0;
+
+	int componentid=0;
+	int materialid=0;
+
 	particle_body* pb=new particle_body();
-	pb->material_id=0;
-	pb->mat=p_material_data->material_list[0];
-	pb->material_model=p_material_data->moterial_model_list[0];
+	pb->set_material(materialid,p_material_data->material_list[materialid], p_material_data->moterial_model_list[materialid], componentid); 
 	pb->begin=particle_counter;
 		
 
@@ -96,7 +99,7 @@ void simulator::initialize()
 	float particle_mass=pow(density_block*distance_between_particles,3);
 	cinder::Vec3f block_min(0,0,0);
 	block_min+=distance_between_particles*0.5;
-	cinder::Vec3i num_particle_axis(4000,1,1);
+	cinder::Vec3i num_particle_axis(50,50,50);
 
 	//p_particle_data->particle_list.resize(num_particle);
 	for(int x=0;x<num_particle_axis.x;x++)
@@ -106,6 +109,7 @@ void simulator::initialize()
 			for(int z=0;z<num_particle_axis.z;z++)
 			{
 				particle* p=new particle();
+				p->particle_id=particle_counter;
 				p->particle_mass=particle_mass;
 				p->position_t.set(x*distance_between_particles+block_min.x,
 					y*distance_between_particles+block_min.y,
@@ -124,7 +128,7 @@ void simulator::initialize()
 
 	bool MUSL=1;
 	bool GIMP=true;
-	bool contact=true;
+	bool contact=false;
 	bool USF=false;
 	bool USL=false;
 	bool gravity=false;
@@ -502,13 +506,17 @@ void simulator::Lagr_NodContact()
 //for each frame or time intervel
 void simulator::update()
 {
+	test();
 	p_particle_data->current_step++;
 	p_particle_data->current_time+=p_particle_data->time_interval;
 	p_particle_data->energy_internal=0;
-
+	test();
+	//cout<<"step0"<<endl;
+	//p_particle_data->particle_list[0]->debug();
 	//p_grid_data->init_grid_momentum(p_particle_data->num_body,p_particle_data);
-	this->init_grid_momentum();
-
+	init_grid_momentum();
+	//cout<<"step1"<<endl;
+	//p_particle_data->particle_list[0]->debug();
 	if(p_particle_data->USF)
 	{
 		p_grid_data->apply_boundary_condition();
@@ -519,25 +527,30 @@ void simulator::update()
 	//p_grid_data->update_grid_momentum(p_particle_data->num_body,p_particle_data);
 	update_grid_momentum();
 	p_grid_data->integrate_grid_momentum(p_particle_data->current_step,p_particle_data->time_interval);
-
+	//cout<<"step2"<<endl;
+	//p_particle_data->particle_list[0]->debug();
 
 	if(p_grid_data->contact_type==e_ct_langrange)
 		//p_grid_data->Lagr_NodContact(p_particle_data);
 			Lagr_NodContact();
 	//p_grid_data->update_particle_position_velocity(p_particle_data->num_body,p_particle_data);
 	update_particle_position_velocity();
-
+	//cout<<"step3"<<endl;
+	//p_particle_data->particle_list[0]->debug();
 	if(p_particle_data->MUSL)
 	{
 		//p_grid_data->calc_grid_momentum_MUSL(p_particle_data->num_body,p_particle_data);
 		calc_grid_momentum_MUSL();
 		p_grid_data->apply_boundary_condition();
 	}
-
+	//cout<<"step4"<<endl;
+	//p_particle_data->particle_list[0]->debug();
 	if(!p_particle_data->USF)
 	{
 		//p_grid_data->update_particle_stress(p_particle_data->num_body,p_particle_data);
 		update_particle_stress();
 	}
+	//cout<<"step5"<<endl;
+	//p_particle_data->particle_list[0]->debug();
 	p_particle_data->calcEnergy();
 }

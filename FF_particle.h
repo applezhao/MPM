@@ -21,6 +21,14 @@ public:
 	{
 		gravity.set(0,0,0);
 	}
+
+	void set_material(const int& material_id, material* mat, MaterialModel* material_model, const int& component_id)
+	{
+		this->material_id=material_id;
+		this->mat=mat;
+		this->material_model=material_model;
+		this->component_id=component_id;
+	}
 };
 
 class particle_data
@@ -56,14 +64,14 @@ public:
 
 	void init_particles(int& num_particle)
 	{
-		this->num_particle=num_particle;
-		particle_list.resize(this->num_particle,new particle());
+		//this->num_particle=num_particle;
+		//particle_list.resize(this->num_particle,new particle());
 	}
 
 	void init_bodies(int& num_body)
 	{
-		this->num_body=num_body;
-		body_list.resize(this->num_body, new particle_body());
+		//this->num_body=num_body;
+		//body_list.resize(this->num_body, new particle_body());
 	}
 
 	//calculate momentum, kinematic energy  and internal energy
@@ -73,7 +81,7 @@ public:
 		energy_kinetic=0;
 		momentum.set(0,0,0);
 
-		#pragma omp parallel for
+		
 		for(int i=0;i<num_particle;i++)
 		{
 			energy_kinetic+=particle_list[i]->velocity.dot(particle_list[i]->velocity)*particle_list[i]->particle_mass*0.5f;

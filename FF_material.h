@@ -273,6 +273,9 @@ public:
 	float particle_mass;//mass
 	float sound_speed;//cp
 
+	//debug
+	int particle_id;
+
 	particle()
 	{
 		mean_stress=mises_stress=effective_plastic_strain=damage=internel_energy=0;
@@ -284,6 +287,13 @@ public:
 		force_load.set(0,0,0);
 		deviatoric_stress_asix.set(0,0,0);
 		deviatoric_stress_plane.set(0,0,0);
+	}
+
+	void debug()
+	{
+		cout<<velocity.x<<" "<<velocity.y<<" "<<velocity.z<<endl;
+		cout<<particle_mass<<" "<<volume<<" "<<celsius_temperature<<" "<<icell<<endl;
+		cout<<mean_stress<<" "<<yield_stress<<" "<<mises_stress<<" "<<effective_plastic_strain<<" "<<internel_energy<<endl;
 	}
 };
 
@@ -527,6 +537,8 @@ public:
 
 	void update_pressure_energy_EOS3/*eos1*/(material* mat, bool& failure)
 	{
+		//cout<<"step5.2.1"<<endl;
+		//cout<<mean_stress<<" "<<energy_internal<<" "<<sound_speed<<endl;
 		float er1v=exp(-mat->cEOS[2]*relative_volume);
 		float er2v=exp(-mat->cEOS[3]*relative_volume);
 		float wdr1v=mat->cEOS[0]-mat->cEOS[0]*mat->cEOS[4]/(mat->cEOS[2]*relative_volume);
@@ -535,13 +547,20 @@ public:
 		float A=wdr1v*er1v+wdr2v*er2v+bulk_viscosity_force;
 		float B=mat->cEOS[4]/relative_volume;
 		update_internal_energy_EOS();
-		A/=burn_fraction;
-		B/=burn_fraction;
+		//cout<<"step5.2.2"<<endl;
+		//cout<<mean_stress<<" "<<energy_internal<<" "<<sound_speed<<endl;
+		A*=burn_fraction;
+		B*=burn_fraction;
 		float p_new=(A+B*energy_internal_per_initial_volume)/(1+B*dvolume/volume_0);
 		if(p_new<0&&failure)
 			p_new=0;
+		//cout<<dvolume<<" "<<p_new<<" "<<volume_0<<" "<<energy_internal_per_initial_volume<<endl;
+		//cout<<burn_fraction<<endl;
+		//cout<<A<<" "<<B<<endl;
 		energy_internal-=dvolume*p_new;
 		mean_stress=-p_new;
+		//cout<<"step5.2.3"<<endl;
+		//cout<<mean_stress<<" "<<energy_internal<<" "<<sound_speed<<endl;
 
 	}
 
@@ -768,17 +787,25 @@ class HighExplosiveBurnModel : public MaterialModel //8
 public:
 	virtual void model_compute(particle* p, material* mat, vector<float>& dstrain, cinder::Vec3f& vorticity, const float& time_intervel, const float& current_time, const float& grid_intervel)
 	{
-		cout<<"HighExplosiveBurnModel"<<endl;
+		//cout<<"HighExplosiveBurnModel"<<endl;
 		update_stress_pre(p,mat,dstrain);
-
+		/*if(p->particle_id==0)
+		{
+			cout<<"step5.1"<<endl;
+			p->debug();
+			cout<<mean_stress<<" "<<energy_internal<<" "<<sound_speed<<endl;
+			cout<<current_time<<" "<<p->lighting_time<<endl;
+		}*/
 		//depends on model type
 		if(current_time > p->lighting_time)
 			burn_fraction=1;
 		else
 			burn_fraction=0;
+		
 		update_pressure_energy_EOS(mat, failure, time_intervel, grid_intervel);
-
+		
 		update_stress_post(p);
+		
 	}
 };
 

@@ -1,6 +1,4 @@
 #pragma once
-#ifndef FF_SIMULATOR_HH
-#define FF_SIMULATOR_HH
 #include <vector>
 #include <cinder/Vector.h>
 #include <boost/multi_array.hpp>
@@ -13,11 +11,23 @@ public:
 	particle_data* p_particle_data;
 	materialData* p_material_data;
 
-	simulator()
+	simulator(void)
+	{
+		p_grid_data=NULL;
+		p_particle_data=NULL;
+		p_material_data=NULL;
+	}
+	~simulator()
 	{}
 
-	void initialize();
+	void test()
+	{
+		int a=0;
+		a++;
+		a++;
+	}
 
+	void initialize_explosion();
 
 	void init_grid_momentum();
 
@@ -34,4 +44,3 @@ public:
 	//for each frame or time intervel
 	void update();
 };
-#endif
