@@ -3,6 +3,8 @@
 #include <cinder/Vector.h>
 #include <boost/multi_array.hpp>
 #include "FF_grid.h"
+#include "FF_particle_data.h"
+#include "FF_material_model.h"
 using namespace std;
 class simulator
 {

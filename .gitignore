@@ -45,3 +45,17 @@ $RECYCLE.BIN/
 Network Trash Folder
 Temporary Items
 .apdisk
+*.opensdf
+*.suo
+CindeMPM_2012.sdf
+*.log
+*.exe
+x64/Debug/CindeMPM_2012.ilk
+*.lastbuildstate
+*.pdb
+*.obj
+*.tlog
+*.res
+x64/Debug/Resources.res
+*.rc
+x64/Debug/vc110.idb

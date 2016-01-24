@@ -1,7 +1,8 @@
 #include "FF_simulator.h"
+#include "FF_HighExplosiveBurnModel.h"
 void simulator::initialize_explosion()
 {
-	int num_particle=125000;
+	int num_particle=50;
 	float endtime=0.015f;
 	float outtime=endtime;
 
@@ -18,9 +19,9 @@ void simulator::initialize_explosion()
 	fixS[0]=(e_grid_edge_condition)2;
 	fixS[1]=(e_grid_edge_condition)0;
 	fixS[2]=(e_grid_edge_condition)2;
-	fixS[3]=(e_grid_edge_condition)2;
+	fixS[3]=(e_grid_edge_condition)0;
 	fixS[4]=(e_grid_edge_condition)2;
-	fixS[5]=(e_grid_edge_condition)2;
+	fixS[5]=(e_grid_edge_condition)0;
 
 	int num_material=1;
 	p_material_data=new materialData();
@@ -99,7 +100,7 @@ void simulator::initialize_explosion()
 	float particle_mass=pow(density_block*distance_between_particles,3);
 	cinder::Vec3f block_min(0,0,0);
 	block_min+=distance_between_particles*0.5;
-	cinder::Vec3i num_particle_axis(50,50,50);
+	cinder::Vec3i num_particle_axis(50,1,1);
 
 	//p_particle_data->particle_list.resize(num_particle);
 	for(int x=0;x<num_particle_axis.x;x++)
@@ -168,6 +169,8 @@ void simulator::initialize_explosion()
 	//grid
 	p_grid_data=new grid_data(grid_span_min,grid_span_max,grid_space,fixS,GIMP,num_component,cutoff);
 	p_grid_data->init_grid_and_cell_list(num_component);
+
+	p_particle_data->calcEnergy();
 }
 
 
@@ -195,21 +198,21 @@ void simulator::init_grid_momentum()
 				continue;
 
 			for(int ss=0;ss<8;ss++)
-				p_grid_data->influenced_node_list[i]=p_grid_data->cell_node_list[pp->icell][ss];
+				p_grid_data->influenced_node_list[ss]=p_grid_data->cell_node_list[pp->icell][ss];
 
 			if(p_particle_data->GIMP)
 			{
 				p_grid_data->get_influenced_node_list(pp,pp->icell);
-				p_grid_data->calc_shape_function_GIMP(pp,pp->icell);
+				p_grid_data->calc_shape_function_GIMP(pp);
 			}
 			else
 				p_grid_data->calc_shape_function(p_grid_data->grid_node_list[p_grid_data->influenced_node_list[0]],pp,0);
 
 			for(int m=0;m<p_grid_data->num_influence_node;m++)
 			{
-				if(p_grid_data->influenced_node_list[i]>=0&&p_grid_data->influenced_node_list[i]<p_grid_data->num_gridnode)
+				if(p_grid_data->influenced_node_list[m]>=0&&p_grid_data->influenced_node_list[m]<p_grid_data->num_gridnode)
 				{
-					grid_node_property* gnp=p_grid_data->grid_node_property_list[comID][p_grid_data->influenced_node_list[i]];
+					grid_node_property* gnp=p_grid_data->grid_node_property_list[comID][p_grid_data->influenced_node_list[m]];
 					gnp->mass+=p_grid_data->value_shape_func[m]*pp->particle_mass;
 					gnp->momentum+=pp->velocity*p_grid_data->value_shape_func[m]*pp->particle_mass;
 				}
@@ -254,19 +257,21 @@ void simulator::update_grid_momentum()
 				continue;
 
 			cinder::Vec3f stress_axis=pp->deviatoric_stress_asix+cinder::Vec3f(pp->mean_stress,pp->mean_stress,pp->mean_stress);
-			cinder::Vec3f stress_plane=pp->deviatoric_stress_plane;
+			float stress_plane_xy=pp->deviatoric_stress_plane.z;
+			float stress_plane_yz=pp->deviatoric_stress_plane.x;
+			float stress_plane_xz=pp->deviatoric_stress_plane.y;
 			cinder::Vec3f external_force=pp->force_load;
 
 			if(p_particle_data->gravity)
 				external_force+=pp->particle_mass*p_particle_data->body_list[i]->gravity;
 
 			for(int ss=0;ss<8;ss++)
-				p_grid_data->influenced_node_list[i]=p_grid_data->cell_node_list[pp->icell][ss];
+				p_grid_data->influenced_node_list[ss]=p_grid_data->cell_node_list[pp->icell][ss];
 
 			if(p_particle_data->GIMP)
 			{
 				p_grid_data->get_influenced_node_list(pp,pp->icell);
-				p_grid_data->calc_shape_function_GIMP(pp,pp->icell);
+				p_grid_data->calc_shape_function_GIMP(pp);
 			}
 			else
 				p_grid_data->calc_shape_function(p_grid_data->grid_node_list[p_grid_data->influenced_node_list[0]],pp,2);
@@ -274,20 +279,20 @@ void simulator::update_grid_momentum()
 			//loop
 			for(int m=0;m<p_grid_data->num_influence_node;m++)
 			{
-				if(p_grid_data->influenced_node_list[i]>=0&&p_grid_data->influenced_node_list[i]<p_grid_data->num_gridnode)
+				if(p_grid_data->influenced_node_list[m]>=0&&p_grid_data->influenced_node_list[m]<p_grid_data->num_gridnode)
 				{
-					grid_node_property* gnp=p_grid_data->grid_node_property_list[comID][p_grid_data->influenced_node_list[i]];
+					grid_node_property* gnp=p_grid_data->grid_node_property_list[comID][p_grid_data->influenced_node_list[m]];
 					cinder::Vec3f internal_force;
-					internal_force.x=-pp->volume*cinder::Vec3f(stress_axis.x,stress_plane.x,stress_plane.z).dot(p_grid_data->d_shape_func_axis[m]);
-					internal_force.y=-pp->volume*cinder::Vec3f(stress_plane.x,stress_axis.y,stress_plane.y).dot(p_grid_data->d_shape_func_axis[m]);
-					internal_force.z=-pp->volume*cinder::Vec3f(stress_plane.z,stress_plane.y,stress_axis.z).dot(p_grid_data->d_shape_func_axis[m]);
+					internal_force.x=-pp->volume*cinder::Vec3f(stress_axis.x,stress_plane_xy,stress_plane_xz).dot(p_grid_data->d_shape_func_axis[m]);
+					internal_force.y=-pp->volume*cinder::Vec3f(stress_plane_xy,stress_axis.y,stress_plane_yz).dot(p_grid_data->d_shape_func_axis[m]);
+					internal_force.z=-pp->volume*cinder::Vec3f(stress_plane_xz,stress_plane_yz,stress_axis.z).dot(p_grid_data->d_shape_func_axis[m]);
 
 					cinder::Vec3f external_force_a=external_force*p_grid_data->value_shape_func[m];
 
 					gnp->force+=internal_force+external_force_a;
 					if(p_particle_data->contact)
 					{
-						p_grid_data->contact_grid_node_property_list[comID][p_grid_data->influenced_node_list[i]]->normal+=p_grid_data->d_shape_func_axis[m]*pp->particle_mass;
+						p_grid_data->contact_grid_node_property_list[comID][p_grid_data->influenced_node_list[m]]->normal+=p_grid_data->d_shape_func_axis[m]*pp->particle_mass;
 					}
 				}
 			}
@@ -318,21 +323,21 @@ void simulator::calc_grid_momentum_MUSL()
 				continue;
 
 			for(int ss=0;ss<8;ss++)
-				p_grid_data->influenced_node_list[i]=p_grid_data->cell_node_list[pp->icell][ss];
+				p_grid_data->influenced_node_list[ss]=p_grid_data->cell_node_list[pp->icell][ss];
 
 			if(p_particle_data->GIMP)
 			{
 				p_grid_data->get_influenced_node_list(pp,pp->icell);
-				p_grid_data->calc_shape_function_GIMP(pp,pp->icell);
+				p_grid_data->calc_shape_function_GIMP(pp);
 			}
 			else
 				p_grid_data->calc_shape_function(p_grid_data->grid_node_list[p_grid_data->influenced_node_list[0]],pp,0);
 
 			for(int m=0;m<p_grid_data->num_influence_node;m++)
 			{
-				if(p_grid_data->influenced_node_list[i]>=0&&p_grid_data->influenced_node_list[i]<p_grid_data->num_gridnode)
+				if(p_grid_data->influenced_node_list[m]>=0&&p_grid_data->influenced_node_list[m]<p_grid_data->num_gridnode)
 				{
-					grid_node_property* gnp=p_grid_data->grid_node_property_list[comID][p_grid_data->influenced_node_list[i]];
+					grid_node_property* gnp=p_grid_data->grid_node_property_list[comID][p_grid_data->influenced_node_list[m]];
 					gnp->momentum+=pp->velocity*p_grid_data->value_shape_func[m]*pp->particle_mass;
 				}
 			}
@@ -364,16 +369,16 @@ void simulator::update_particle_position_velocity()
 			if(p_particle_data->GIMP)
 			{
 				p_grid_data->get_influenced_node_list(pp,pp->icell);
-				p_grid_data->calc_shape_function_GIMP(pp,pp->icell);
+				p_grid_data->calc_shape_function_GIMP(pp);
 			}
 			else
 				p_grid_data->calc_shape_function(p_grid_data->grid_node_list[p_grid_data->influenced_node_list[0]],pp,2);
 
 			for(int m=0;m<p_grid_data->num_influence_node;m++)
 			{
-				if(p_grid_data->influenced_node_list[i]>=0&&p_grid_data->influenced_node_list[i]<p_grid_data->num_gridnode)
+				if(p_grid_data->influenced_node_list[m]>=0&&p_grid_data->influenced_node_list[m]<p_grid_data->num_gridnode)
 				{
-					grid_node_property* gnp=p_grid_data->grid_node_property_list[comID][p_grid_data->influenced_node_list[i]];
+					grid_node_property* gnp=p_grid_data->grid_node_property_list[comID][p_grid_data->influenced_node_list[m]];
 					if(gnp->mass>p_grid_data->mass_cutoff)
 					{
 						velocity_x+=gnp->momentum/gnp->mass*p_grid_data->value_shape_func[m];
@@ -415,16 +420,16 @@ void simulator::update_particle_stress()
 			if(p_particle_data->GIMP)
 			{
 				p_grid_data->get_influenced_node_list(pp,pp->icell);
-				p_grid_data->calc_shape_function_GIMP(pp,pp->icell);
+				p_grid_data->calc_shape_function_GIMP(pp);
 			}
 			else
 				p_grid_data->calc_shape_function(p_grid_data->grid_node_list[p_grid_data->influenced_node_list[0]],pp,2);
 
 			for(int m=0;m<p_grid_data->num_influence_node;m++)
 			{
-				if(p_grid_data->influenced_node_list[i]>=0&&p_grid_data->influenced_node_list[i]<p_grid_data->num_gridnode)
+				if(p_grid_data->influenced_node_list[m]>=0&&p_grid_data->influenced_node_list[m]<p_grid_data->num_gridnode)
 				{
-					grid_node_property* gnp=p_grid_data->grid_node_property_list[comID][p_grid_data->influenced_node_list[i]];
+					grid_node_property* gnp=p_grid_data->grid_node_property_list[comID][p_grid_data->influenced_node_list[m]];
 					if(gnp->mass>p_grid_data->mass_cutoff)
 					{
 						cinder::Vec3f grid_velocity=gnp->momentum/gnp->mass;
@@ -432,7 +437,7 @@ void simulator::update_particle_stress()
 						d_strain[1]+=grid_velocity.y*p_grid_data->d_shape_func_axis[m].y;
 						d_strain[2]+=grid_velocity.z*p_grid_data->d_shape_func_axis[m].z;
 						d_strain[3]+=grid_velocity.z*p_grid_data->d_shape_func_axis[m].y+grid_velocity.y*p_grid_data->d_shape_func_axis[m].z;
-						d_strain[4]+=grid_velocity.y*p_grid_data->d_shape_func_axis[m].x+grid_velocity.x*p_grid_data->d_shape_func_axis[m].y;
+						d_strain[4]+=grid_velocity.x*p_grid_data->d_shape_func_axis[m].z+grid_velocity.z*p_grid_data->d_shape_func_axis[m].x;
 						d_strain[5]+=grid_velocity.y*p_grid_data->d_shape_func_axis[m].x+grid_velocity.x*p_grid_data->d_shape_func_axis[m].y;
 
 						d_vorticity.x+=grid_velocity.z*p_grid_data->d_shape_func_axis[m].y-grid_velocity.y*p_grid_data->d_shape_func_axis[m].z;
@@ -506,11 +511,12 @@ void simulator::Lagr_NodContact()
 //for each frame or time intervel
 void simulator::update()
 {
-	test();
+	
 	p_particle_data->current_step++;
 	p_particle_data->current_time+=p_particle_data->time_interval;
 	p_particle_data->energy_internal=0;
 	test();
+
 	//cout<<"step0"<<endl;
 	//p_particle_data->particle_list[0]->debug();
 	//p_grid_data->init_grid_momentum(p_particle_data->num_body,p_particle_data);

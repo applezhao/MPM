@@ -3,6 +3,7 @@
 #include "cinder/gl/Vbo.h"
 #include "cinder/Camera.h"
 #include "cinder/gl/GLee.h"
+#include "cinder/params/Params.h"
 
 #include <vector>
 #include "FF_simulator.h"
@@ -17,6 +18,8 @@ class CindeMPM_2012App : public AppNative {
 	int n;
 	GLfloat* vertices;
 	CameraPersp m_camera;
+	Vec3f mEye, mCenter,mUp;
+
   public:
 	void setup();
 	void mouseDown( MouseEvent event );	
@@ -37,8 +40,10 @@ void CindeMPM_2012App::setup()
 	
 	vertices = new GLfloat[s.p_particle_data->particle_list.size()*3];
 	m_camera.setPerspective(45.0f, 1.5f, 0.01,100);
-	//m_camera.lookAt(cinder::Vec3f(-1+0.2, 0.5-0.125/2, 0.5-0.125/2), cinder::Vec3f(0, 1.25, 1.25), cinder::Vec3f(0,1,0));
-	m_camera.lookAt(cinder::Vec3f(-6, 4.7, 7.8)+cinder::Vec3f(0.74,-0.345,-0.6)*5, cinder::Vec3f(1.38, 1.25, 1.87), cinder::Vec3f(0.27,0.93,-0.21));
+	mEye=cinder::Vec3f(-2, 2.8, 4.5)+cinder::Vec3f(-2.75, 2.05, 3.75).normalized()*-2;
+	mCenter=cinder::Vec3f(0.75, 0.75, 0.75);
+	mUp=cinder::Vec3f(0.27,0.93,-0.21);
+
 
 }
 
@@ -50,13 +55,18 @@ void CindeMPM_2012App::update()
 {
 	int mm=s.p_particle_data->num_particle;
 	s.update();
-	gl::setMatrices(m_camera);
+	//mEye = Vec3f( 0.0f, 0.0f, mCameraDistance );
+	m_camera.lookAt( mEye, mCenter, mUp );
+	gl::setMatrices( m_camera );
+	//gl::rotate( mSceneRotation );
 }
 
 void CindeMPM_2012App::draw()
 {
 	// clear out the window with black
 	gl::clear( Color( 0, 0, 0 ) );
+	//gl::enableDepthRead();
+	//gl::enableDepthWrite();
 	gl::color(1,.5,1);
 	vector<particle*>& particles = s.p_particle_data->particle_list;
 	int nParticles = particles.size();
@@ -86,9 +96,11 @@ void CindeMPM_2012App::draw()
 	glPointSize(10);
 	glBegin(GL_POINTS);
 	   glVertex3f(0 , 0, 0);
-	   glVertex3f(0 , 0.5, 0.5);
+
 	glEnd();
 	glDisableClientState(GL_VERTEX_ARRAY);
+
+	//mParams.draw();
 }
 
 void CindeMPM_2012App::prepareSettings( Settings *settings ) {
