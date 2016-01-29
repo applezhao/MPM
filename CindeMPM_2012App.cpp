@@ -4,6 +4,10 @@
 #include "cinder/Camera.h"
 #include "cinder/gl/GLee.h"
 #include "cinder/params/Params.h"
+#include "cinder/ImageIo.h"
+#include "cinder/Utilities.h"
+
+#include <sstream>
 
 #include <vector>
 #include "FF_simulator.h"
@@ -53,6 +57,8 @@ void CindeMPM_2012App::mouseDown( MouseEvent event )
 
 void CindeMPM_2012App::update()
 {
+	//cout<<getHomeDirectory()<<endl;
+	writeImage( getHomeDirectory() / "cinder" / "saveImage_" / ( toString( s.p_particle_data->current_step ) + ".png" ), copyWindowSurface() ); 
 	int mm=s.p_particle_data->num_particle;
 	s.update();
 	//mEye = Vec3f( 0.0f, 0.0f, mCameraDistance );

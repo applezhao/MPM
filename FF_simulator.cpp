@@ -2,7 +2,7 @@
 #include "FF_HighExplosiveBurnModel.h"
 void simulator::initialize_explosion()
 {
-	int num_particle=50;
+	int num_particle=125000;
 	float endtime=0.015f;
 	float outtime=endtime;
 
@@ -10,8 +10,8 @@ void simulator::initialize_explosion()
 	cinder::Vec3f grid_span_max(3,3,3);
 	float grid_space=0.05f;
 
-	float time_interval_factor=0.5;
-	float time_interval=1;
+	float time_interval_factor=0.1;
+	float time_interval=7e-6;
 	outtime=0.001;
 	float report_time=0.0001;
 
@@ -19,9 +19,9 @@ void simulator::initialize_explosion()
 	fixS[0]=(e_grid_edge_condition)2;
 	fixS[1]=(e_grid_edge_condition)0;
 	fixS[2]=(e_grid_edge_condition)2;
-	fixS[3]=(e_grid_edge_condition)0;
+	fixS[3]=(e_grid_edge_condition)2;
 	fixS[4]=(e_grid_edge_condition)2;
-	fixS[5]=(e_grid_edge_condition)0;
+	fixS[5]=(e_grid_edge_condition)2;
 
 	int num_material=1;
 	p_material_data=new materialData();
@@ -52,7 +52,7 @@ void simulator::initialize_explosion()
 	{
 		cutoff+=p_material_data->material_list[i]->density;
 	}
-	cutoff=cutoff*pow(grid_space,3)*0.00001f/num_material;
+	cutoff=cutoff*pow(grid_space,3)*(1.0e-5)/num_material;
 
 	bool jaum=1;
 	int num_detonation_point=1;
@@ -100,7 +100,7 @@ void simulator::initialize_explosion()
 	float particle_mass=pow(density_block*distance_between_particles,3);
 	cinder::Vec3f block_min(0,0,0);
 	block_min+=distance_between_particles*0.5;
-	cinder::Vec3i num_particle_axis(50,1,1);
+	cinder::Vec3i num_particle_axis(50,50,50);
 
 	//p_particle_data->particle_list.resize(num_particle);
 	for(int x=0;x<num_particle_axis.x;x++)
@@ -127,8 +127,8 @@ void simulator::initialize_explosion()
 
 
 
-	bool MUSL=1;
-	bool GIMP=true;
+	bool MUSL=true;
+	bool GIMP=false;
 	bool contact=false;
 	bool USF=false;
 	bool USL=false;

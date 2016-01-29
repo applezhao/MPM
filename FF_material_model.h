@@ -59,7 +59,7 @@ public:
 	virtual void model_compute(particle* p,material* mat, vector<float>& dstrain, cinder::Vec3f& vorticity, const float& time_intervel=0, const float& current_time=0, const float& grid_intervel=0)
 	{cout<<"virtualcompute"<<endl;}
 
-	void update_stress_pre(particle* p, material* mat, vector<float>& dstrain);
+	void update_stress_pre(particle* p, material* mat,const vector<float>& dstrain);
 
 	void update_stress_post(particle* p);
 	void update_devitoric_stress_by_elastic_relation/*elastic_devi*/();
@@ -80,7 +80,7 @@ public:
 
 	void update_pressure_energy_EOS2/*eos1*/(material* mat, bool& failure, const float& time_intervel, const float& grid_intervel);
 
-	void update_pressure_energy_EOS3/*eos1*/(material* mat, bool& failure);
+	void update_pressure_energy_EOS3/*eos1*/(material* mat, bool& failure, const float& time_intervel, const float& grid_intervel);
 
 	void calc_bulk_viscosity/*bulkq*/(material* mat, const float& time_intervel, const float& grid_intervel);
 

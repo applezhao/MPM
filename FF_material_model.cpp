@@ -2,7 +2,7 @@
 #include <boost/assert.hpp>
 
 
-void MaterialModel::update_stress_pre(particle* p, material* mat, vector<float>& dstrain)
+void MaterialModel::update_stress_pre(particle* p, material* mat, const vector<float>& dstrain)
 {
 	for(int i=0;i<6;i++)
 		this->dstrain[i]=dstrain[i];
@@ -11,7 +11,9 @@ void MaterialModel::update_stress_pre(particle* p, material* mat, vector<float>&
 	p->volume=volume_n*(1+dstrain[0]+dstrain[1]+dstrain[2]);
 	volume_current=p->volume;
 	dvolume=(volume_current-volume_n)*0.5f;
-	BOOST_ASSERT_MSG(volume_current>=0, "volume is negative");
+	//BOOST_ASSERT_MSG(volume_current>=0, "volume is negative");
+	if(volume_current<0)
+		cout<<p->particle_id<<" "<<"volume is negative"<<endl;
 
 	effective_plastic_strain=p->effective_plastic_strain;
 	yield_stress=p->yield_stress;
@@ -147,7 +149,7 @@ void MaterialModel::update_pressure_energy_EOS/*seleos*/(material* mat, bool& fa
 		update_pressure_energy_EOS2(mat,failure,time_intervel, grid_intervel);
 		break;
 	case 3:
-		update_pressure_energy_EOS3(mat,failure);
+		update_pressure_energy_EOS3(mat,failure,time_intervel, grid_intervel);
 		break;
 	}
 }
@@ -187,7 +189,7 @@ void MaterialModel::update_pressure_energy_EOS2/*eos2*/(material* mat, bool& fai
 	mean_stress=-p_new;
 }
 
-void MaterialModel::update_pressure_energy_EOS3/*eos3*/(material* mat, bool& failure)
+void MaterialModel::update_pressure_energy_EOS3/*eos3*/(material* mat, bool& failure, const float& time_intervel, const float& grid_intervel)
 {
 	//cout<<"step5.2.1"<<endl;
 	//cout<<mean_stress<<" "<<energy_internal<<" "<<sound_speed<<endl;
@@ -196,7 +198,8 @@ void MaterialModel::update_pressure_energy_EOS3/*eos3*/(material* mat, bool& fai
 	float wdr1v=mat->cEOS[0]-mat->cEOS[0]*mat->cEOS[4]/(mat->cEOS[2]*relative_volume);
 	float wdr2v=mat->cEOS[1]-mat->cEOS[1]*mat->cEOS[4]/(mat->cEOS[3]*relative_volume);
 
-	float A=wdr1v*er1v+wdr2v*er2v+bulk_viscosity_force;
+	//calc_bulk_viscosity(mat, time_intervel, grid_intervel);
+	float A=wdr1v*er1v+wdr2v*er2v;//+bulk_viscosity_force;
 	float B=mat->cEOS[4]/relative_volume;
 	update_internal_energy_EOS();
 	//cout<<"step5.2.2"<<endl;

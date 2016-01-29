@@ -16,6 +16,8 @@ public:
 		update_rotate_stress(vorticity);
 		compute();
 		update_internal_energy();
+
+		//check 0 divide
 		p->celsius_temperature+=equivalent_stress*deffective_plastic_strain/density_current/mat->specifiedHeatCapacity;
 
 		update_stress_post(p);

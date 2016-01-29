@@ -58,6 +58,7 @@ grid_data::grid_data(const cinder::Vec3f& min_SPAN,const cinder::Vec3f& max_SPAN
 	this->iJacobi=2.0f/this->grid_intervel;
 	this->iJacobi4=iJacobi*0.125f;
 	this->igrid_intervel=1.0f/this->grid_intervel;
+	cout<<"idcell:"<<igrid_intervel<<" "<<grid_intervel<<endl;
 
 	if(isGimp)
 	{
@@ -136,7 +137,7 @@ void grid_data::init_grid_and_cell_list(const int& num_component)
 void grid_data::calc_shape_function(const grid_node* node, const particle* p, int compute_flag)
 {
 	cinder::Vec3f nature_coord=(p->position_t-node->position)*iJacobi-cinder::Vec3f(1,1,1);//-1-1
-	vector<cinder::Vec3f> s_nature_coord;
+	vector<cinder::Vec3f> s_nature_coord(8);
 		
 	for(int i=0;i<8;i++)
 	{
@@ -167,12 +168,13 @@ void grid_data::calc_shape_function_GIMP(const particle* p)
 	for(int i=0;i<num_influence_node;i++)
 	{
 		cinder::Vec3f sh, dn;
-		if(influenced_node_list[i]<num_gridnode&&influenced_node_list[i]>=0)
-		{
-			calc_sh_dn(distance_particle_grid[i].x,sh.x,dn.x);
-			calc_sh_dn(distance_particle_grid[i].y,sh.y,dn.y);
-			calc_sh_dn(distance_particle_grid[i].z,sh.z,dn.z);
-		}
+		if(influenced_node_list[i]>=num_gridnode||influenced_node_list[i]<0)
+			continue;
+
+		calc_sh_dn(distance_particle_grid[i].x,sh.x,dn.x);
+		calc_sh_dn(distance_particle_grid[i].y,sh.y,dn.y);
+		calc_sh_dn(distance_particle_grid[i].z,sh.z,dn.z);
+
 		value_shape_func[i]=sh.x*sh.y*sh.z;
 		d_shape_func_axis[i].x=dn.x*sh.y*sh.z*igrid_intervel;
 		d_shape_func_axis[i].y=dn.y*sh.x*sh.z*igrid_intervel;
@@ -299,6 +301,7 @@ void grid_data::get_influenced_node_list(const particle* p, const int& cell_inde
 	{
 		influenced_node_list[i]=cell_node_list[cell_index][i];
 		distance_particle_grid[i]=(p->position_t-grid_node_list[influenced_node_list[i]]->position)*igrid_intervel;
+		//cout<<i<<" "<<p->particle_id<<" "<<distance_particle_grid[i].x<<endl;
 	}
 
 	update_influenced_node_list();
@@ -524,31 +527,19 @@ void grid_data::update_influenced_node_list()
 void grid_data::calc_sh_dn(const float& x, float& out_sh, float& out_dn)
 {
 	float absx=abs(x);
-	if(absx<0.25)
+	if(0.25-absx<=0.00001)
 	{
 		out_sh=(7-16*absx*absx)*0.125f;
 		out_dn=-4*x;
 	}
-	else if(absx<0.75)
+	else if(0.75-absx<=0.00001)
 	{
 		out_sh=1-absx;
-		float temp=1-x;
-		if(temp!=out_sh)
-		{
-			//cout<<temp<<" "<<out_sh<<endl;
-			//out_sh=temp;
-		}
 		out_dn=-sign(1,x);
 	}
-	else if(absx<1.249)
+	else if(1.25-absx<=0.00001)
 	{
 		out_sh=powf((5-4*absx)*0.25,2);
-		float temp=powf((5-4*x)*0.25,2);
-		if(temp!=out_sh)
-		{
-			//cout<<temp<<" "<<out_sh<<endl;
-			//out_sh=temp;
-		}
 		out_dn=2*x-sign(1,x)*2.5;
 	}
 	else

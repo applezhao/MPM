@@ -59,3 +59,4 @@ x64/Debug/CindeMPM_2012.ilk
 x64/Debug/Resources.res
 *.rc
 x64/Debug/vc110.idb
+*.map
